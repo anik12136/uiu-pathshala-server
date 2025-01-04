@@ -7,6 +7,9 @@ const { text } = require('express');
 app.use(cors());
 app.use(express.json());
 
+
+
+
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 // const { MongoClient, ServerApiVersion } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.00oqpy6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -23,13 +26,54 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
 
-    const demoCourses   =  client.db("uiu-pathshala").collection("demoCourses");
+    const demoCourses = client.db("uiu-pathshala").collection("demoCourses");
+    const usersCollection = client.db("uiu-pathshala").collection("users");
+    const courseCollection = client.db("uiu-pathshala").collection("courseCollection");
 
-
+    // demo courses
     app.get('/demoCourses', async (req, res) => {
-        const result = await demoCourses.find().toArray();
-        res.send(result);
+      const result = await demoCourses.find().toArray();
+      res.send(result);
     })
+
+    // users post to database
+    app.post('/users', async (req, res) => {
+      const user = req.body;
+      const query = { email: user.email }
+      const existingUser = await usersCollection.findOne(query);
+      if (existingUser) {
+        return res.send({ message: 'user already exists' })
+      }
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
+
+    // -------------tutor
+    // Add course
+    app.post('/courseCollection', async (req, res) => {
+      const body = req.body;
+      console.log(body);
+      const result = await courseCollection.insertOne(body);
+      res.send(result);
+    });
+
+    // email filtering my courses
+    app.get("/myCourses/:email", async (req, res) => {
+      console.log(req.params.email);
+      const filteredCourses = courseCollection.find({ email: req.params.email });
+      const result = await filteredCourses.toArray();
+      res.send(result);
+    })
+
+    // demo courses
+    app.get('/courseCollection', async (req, res) => {
+      const result = await courseCollection.find().toArray();
+      res.send(result);
+    })
+    
+    
+
+
 
 
     // Connect the client to the server	(optional starting in v4.7)
@@ -44,9 +88,9 @@ async function run() {
 }
 run().catch(console.dir);
 app.get('/', (req, res) => {
-    res.send('UIU-Pathshala is Running')
+  res.send('UIU-Pathshala is Running')
 })
 
 app.listen(port, () => {
-    console.log(`UIU-Pathshala API is running on port: ${port}`)
+  console.log(`UIU-Pathshala API is running on port: ${port}`)
 })
