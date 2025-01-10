@@ -2,11 +2,15 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const port = process.env.PORT || 7000;
+
+
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.00oqpy6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -25,6 +29,8 @@ async function run() {
     const ProgrammingCommunity = client.db("uiu-pathshala").collection("ProgrammingCommunity");
     const ProgrammingComment = client.db("uiu-pathshala").collection("ProgrammingComment");
     const users = client.db("uiu-pathshala").collection("users");
+    const ProgrammingContest = client.db("uiu-pathshala").collection("ProgrammingContest");
+
 
     // Demo Courses Route
     app.get('/demoCourses', async (req, res) => {
@@ -454,7 +460,83 @@ async function run() {
 
     //================Programming Community Code End==========================
 
+    //=====================Contest Code Start from here========================
 
+    // Create a new contest
+    app.post('/CreateContest', async (req, res) => {
+      const { title, description, startDate, startTime, duration, languages, difficulty, banner, author } = req.body;
+
+      if (!title || !description || !startDate || !startTime || !duration || !languages || !author) {
+        return res.status(400).json({ message: 'All required fields must be filled.' });
+      }
+
+      const contest = {
+        title,
+        description,
+        startDate,
+        startTime,
+        duration,
+        languages,
+        difficulty,
+        banner,
+        author, // this will be the author extracted from the email before '@'
+        createdAt: new Date(),
+      };
+
+      try {
+        const result = await ProgrammingContest.insertOne(contest);
+        res.status(201).json({ message: 'Contest created successfully', contestId: result._id });
+      } catch (error) {
+        res.status(500).json({ message: 'Error creating contest', error });
+      }
+    });
+
+    //get  all contest 
+
+    app.get('/GetContest', async (req, res) => {
+      const result = await ProgrammingContest.find().sort({ createdAt: -1 }).toArray();
+      res.send(result);
+    });
+    
+    // Delete a contest
+    app.delete('/DeleteContest/:postId', async (req, res) => {
+      try {
+        const postId = new ObjectId(req.params.postId);
+        console.log(postId);
+
+        const post = await ProgrammingContest.findOne({ _id: postId });
+
+        if (!post) {
+          return res.status(404).json({ message: 'Contest not found' });
+        }
+
+
+
+        await ProgrammingContest.deleteOne({ _id: postId });
+        res.json({ message: 'Contest deleted successfully' });
+      } catch (error) {
+        res.status(500).json({ message: 'Error deleting Contest', error: error.message });
+      }
+    });
+
+   
+    // Get a single contest by ID
+    app.get('/GetContest/:postId', async (req, res) => {
+      try {
+        const postId = req.params.postId;
+        const result = await ProgrammingContest.find({ _id: new ObjectId(postId) }).toArray();
+        if (!result.length) {
+          return res.status(404).send({ message: 'Contest not found' });
+        }
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: 'Error retrieving contest', error });
+      }
+    });
+
+
+    //=====================Contest Code End here===============================
+    
 
 
 
