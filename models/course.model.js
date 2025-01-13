@@ -2,6 +2,10 @@ const mongoose = require("mongoose");
 
 // Video Schema
 const videoSchema = new mongoose.Schema({
+  _id: {
+    type: mongoose.Schema.Types.ObjectId,
+    default: () => new mongoose.Types.ObjectId(),
+  }, // Unique ID for each video
   title: { type: String, required: true },
   description: { type: String, required: true },
   url: { type: String, required: true }, // File name, accessible by the frontend
@@ -9,6 +13,10 @@ const videoSchema = new mongoose.Schema({
 
 // Chapter Schema
 const chapterSchema = new mongoose.Schema({
+  _id: {
+    type: mongoose.Schema.Types.ObjectId,
+    default: () => new mongoose.Types.ObjectId(),
+  }, // Unique ID for each chapter
   title: { type: String, required: true },
   description: { type: String, required: true },
   videos: [videoSchema], // Array of videos

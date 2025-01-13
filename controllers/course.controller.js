@@ -40,21 +40,21 @@ const getAllCourses = async (req, res) => {
     const db = await connectDB();
     const courses = db.collection("courses");
 
-    const result = await courses.find().toArray();
-      // .aggregate([
-      //   {
-      //     $lookup: {
-      //       from: "users",
-      //       localField: "creator",
-      //       foreignField: "_id",
-      //       as: "creatorDetails",
-      //     },
-      //   },
-      //   {
-      //     $unwind: "$creatorDetails",
-      //   },
-      // ])
-      // .toArray();
+    const result = await courses
+      .aggregate([
+        {
+          $lookup: {
+            from: "users",
+            localField: "creator",
+            foreignField: "email",
+            as: "creatorDetails",
+          },
+        },
+        {
+          $unwind: "$creatorDetails",
+        },
+      ])
+      .toArray();
 
     res.status(200).json(result);
   } catch (error) {
