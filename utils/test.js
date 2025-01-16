@@ -47,7 +47,7 @@ async function dropCoursesCollection() {
   }
 }
 
-dropCoursesCollection();
-// getUsers();
+// dropCoursesCollection();
+getUsers();
 
 

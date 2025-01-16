@@ -141,43 +141,7 @@ const getCourseById = async (req, res) => {
   }
 };
 
-// Update a course
-const updateCourse = async (req, res) => {
-  try {
-    const courseId  = req.params.id;
-    const { title, description, tags, status } = req.body;
-    const bannerImage = req.file?.filename;
 
-    const db = await connectDB();
-    const courses = db.collection("courses");
-
-    const updatedCourse = {
-      title,
-      description,
-      tags,
-      bannerImage,
-      status,
-      publishedOn: status === "published" ? Date.now() : null,
-    };
-
-    const result = await courses.updateOne(
-      { _id: new ObjectId(courseId) },
-      { $set: updatedCourse }
-    );
-
-    if (result.modifiedCount === 0) {
-      return res.status(404).json({ error: "Course not found" });
-    }
-
-    res
-      .status(200)
-      .json({ message: "Course updated successfully", course: updatedCourse });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Failed to update course", details: error.message });
-  }
-};
 
 // Add a chapter to a course
 const addChapter = async (req, res) => {
@@ -190,7 +154,7 @@ const addChapter = async (req, res) => {
 
     const result = await courses.updateOne(
       { _id: new ObjectId(courseId) },
-      { $push: { chapters: { title, description } } }
+      { $push: { chapters: { _id: new ObjectId(), title, description } } }
     );
 
     if (result.modifiedCount === 0) {
@@ -210,14 +174,27 @@ const addVideo = async (req, res) => {
   try {
     const { courseId, chapterId } = req.params;
     const { title, description } = req.body;
-    const url = req.file?.path; // Path of the uploaded video using multer
+    const videoFile = req.file?.filename; // Path of the uploaded video using multer
 
+
+    if(title === undefined || description === undefined || videoFile === undefined){
+      return res.status(400).json({ error: "Please provide title, description and video file" });
+    }
     const db = await connectDB();
     const courses = db.collection("courses");
 
     const result = await courses.updateOne(
       { _id: new ObjectId(courseId), "chapters._id": new ObjectId(chapterId) },
-      { $push: { "chapters.$.videos": { title, description, url } } }
+      {
+        $push: {
+          "chapters.$.videos": {
+            _id: new ObjectId(),
+            title,
+            description,
+            filename: videoFile,
+          },
+        },
+      }
     );
 
     if (result.modifiedCount === 0) {
@@ -279,14 +256,115 @@ const deleteChapter = async (req, res) => {
   }
 };
 
+
+// Update course title
+const updateCourseTitle = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title } = req.body;
+
+    const db = await connectDB();
+    const courses = db.collection("courses");
+
+    const result = await courses.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { title } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    res.status(200).json({ message: "Course title updated successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update course title", details: error.message });
+  }
+};
+
+// Update course description
+const updateCourseDescription = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { description } = req.body;
+
+    const db = await connectDB();
+    const courses = db.collection("courses");
+
+    const result = await courses.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { description } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    res.status(200).json({ message: "Course description updated successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update course description", details: error.message });
+  }
+};
+
+// Update chapter title
+const updateChapterTitle = async (req, res) => {
+  try {
+    const { courseId, chapterId } = req.params;
+    const { title } = req.body;
+
+    const db = await connectDB();
+    const courses = db.collection("courses");
+
+    const result = await courses.updateOne(
+      { _id: new ObjectId(courseId), "chapters._id": new ObjectId(chapterId) },
+      { $set: { "chapters.$.title": title } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ error: "Course or Chapter not found" });
+    }
+
+    res.status(200).json({ message: "Chapter title updated successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update chapter title", details: error.message });
+  }
+};
+
+// Update chapter description
+const updateChapterDescription = async (req, res) => {
+  try {
+    const { courseId, chapterId } = req.params;
+    const { description } = req.body;
+
+    const db = await connectDB();
+    const courses = db.collection("courses");
+
+    const result = await courses.updateOne(
+      { _id: new ObjectId(courseId), "chapters._id": new ObjectId(chapterId) },
+      { $set: { "chapters.$.description": description } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ error: "Course or Chapter not found" });
+    }
+
+    res.status(200).json({ message: "Chapter description updated successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update chapter description", details: error.message });
+  }
+};
+
+
 module.exports = {
   createCourse,
   getAllCourses,
   getCoursesByUser,
   getCourseById,
-  updateCourse,
   addChapter,
   addVideo,
   deleteChapter,
   deleteCourse,
+  updateChapterDescription,
+  updateChapterTitle,
+  updateCourseDescription,
+  updateCourseTitle,
 };
