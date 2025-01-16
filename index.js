@@ -3,6 +3,7 @@ const app = express();
 const cors = require('cors');
 const port = process.env.PORT || 7000;
 const courseRoutes = require("./routes/course.routes");
+const bookMarkRoutes = require("./routes/bookMark.routes");
 
 
 require('dotenv').config();
@@ -14,6 +15,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use("/uploads", express.static("public/uploads")); // Serve uploaded files
 
 app.use("/api", courseRoutes);
+app.use("/BookMark", bookMarkRoutes)
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.00oqpy6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -501,6 +503,8 @@ async function run() {
       const result = await ProgrammingContest.find().sort({ createdAt: -1 }).toArray();
       res.send(result);
     });
+
+    
     
     // Delete a contest
     app.delete('/DeleteContest/:postId', async (req, res) => {
