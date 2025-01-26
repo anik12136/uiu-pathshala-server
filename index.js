@@ -2,8 +2,16 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 const port = process.env.PORT || 7000;
+const http = require("http");
+const { Server } = require("socket.io");
+
 const courseRoutes = require("./routes/course.routes");
 const bookMarkRoutes = require("./routes/bookMark.routes");
+const chatRoutes = require("./routes/chat.routes");
+const initializeSocket = require("./utils/socketHandler");
+
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: "*" } });
 
 
 require('dotenv').config();
@@ -15,8 +23,11 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use("/uploads", express.static("public/uploads")); // Serve uploaded files
 
 app.use("/api", courseRoutes);
+app.use("/chat", chatRoutes);
 app.use("/BookMark", bookMarkRoutes)
 
+
+initializeSocket(io);
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.00oqpy6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
