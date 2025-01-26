@@ -30,17 +30,17 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    const demoCourses = client.db("uiu-pathshala").collection("demoCourses");
+    const courses = client.db("uiu-pathshala").collection("courses");
     const GeneralCommunity = client.db("uiu-pathshala").collection("GeneralCommunity");
     const ProgrammingCommunity = client.db("uiu-pathshala").collection("ProgrammingCommunity");
     const ProgrammingComment = client.db("uiu-pathshala").collection("ProgrammingComment");
     const users = client.db("uiu-pathshala").collection("users");
     const ProgrammingContest = client.db("uiu-pathshala").collection("ProgrammingContest");
 
-
+    // ============ Anik start====================
     // Demo Courses Route
-    app.get('/demoCourses', async (req, res) => {
-      const result = await demoCourses.find().toArray();
+    app.get('/courses', async (req, res) => {
+      const result = await courses.find().toArray();
       res.send(result);
     });
 
@@ -51,12 +51,26 @@ async function run() {
       const existingUser = await users.findOne(query);
 
       if (existingUser) {
-          return res.send({ message: 'user already exists' })
+        return res.send({ message: 'user already exists' })
       }
       // console.log(newFormCourses);
       const result = await users.insertOne(newUser);
       res.send(result);
-  })
+    })
+
+    // only one user api
+    app.get('/dbUser/:email', async (req, res) => {
+      const email = req.params.email;
+      const result = await users.findOne({ email: email }) ;
+      res.send(result);
+    });
+
+    // All users
+    app.get('/allUsers', async (req, res) => {
+      const result = await users.find().toArray();
+      res.send(result);
+    });
+   // ============ Anik end====================
 
     //===================General community start===================================
 
@@ -504,8 +518,8 @@ async function run() {
       res.send(result);
     });
 
-    
-    
+
+
     // Delete a contest
     app.delete('/DeleteContest/:postId', async (req, res) => {
       try {
@@ -527,7 +541,7 @@ async function run() {
       }
     });
 
-   
+
     // Get a single contest by ID
     app.get('/GetContest/:postId', async (req, res) => {
       try {
@@ -544,10 +558,10 @@ async function run() {
 
 
     //=====================Contest Code End here===============================
-    
 
 
-    
+
+
 
 
 
