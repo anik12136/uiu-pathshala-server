@@ -81,6 +81,16 @@ async function run() {
       const result = await users.find().toArray();
       res.send(result);
     });
+
+    app.get('/users/:id', async (req, res) => {
+      const { id } = req.params;
+      const user = await users.findById(id); // Replace with your database query
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      res.json(user);
+    });
+    
    // ============ Anik end====================
 
     //===================General community start===================================
