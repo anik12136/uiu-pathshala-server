@@ -1,42 +1,57 @@
-const connectDB = require("./db");
-
-async function initializeSocket(io) {
-  const onlineUsers = new Map(); // email -> { name }
-  const db = await connectDB();
-  const conversations = db.collection("conversations");
+module.exports = function initializeSocket(io) {
+  // Track online users using a Map (email -> socket ID)
+  const onlineUsers = new Map();
+  console.log("TEST");
 
   io.on("connection", (socket) => {
+    console.log("A user connected:", socket.id);
 
-    
-    const { email } = socket.handshake.query; // Email and name passed during connection
+    // Listen for user online event
+    socket.on("user-online", (email) => {
+      console.log(`${email} is online`);
+      onlineUsers.set(email, socket.id);
 
+      // Broadcast the updated list of online users to all clients
+      io.emit("online-users", Array.from(onlineUsers.keys()));
+    });
 
-    if (!email) {
-      console.error("Connection missing email or name");
-      return;
-    }
-    console.log("connected:",email);
-    
-    // Add user to the map
-    onlineUsers.set(email);
+    // Listen for user sending a message
+    socket.on("send-message", (data) => {
+      const { recipient, content, sender } = data;
 
-    // Broadcast updated online users list
-    io.emit("onlineUsers", Array.from(onlineUsers.entries()));
+      // Check if the recipient is online
+      if (onlineUsers.has(recipient)) {
+        const recipientSocketId = onlineUsers.get(recipient);
 
-    console.log(` (${email}) connected.`);
+        // Emit the message directly to the recipient
+        io.to(recipientSocketId).emit("new-message", {
+          sender,
+          content,
+        });
+      } else {
+        console.log(`${recipient} is offline`);
+        // Optionally, notify the sender that the recipient is offline
+        socket.emit("message-failed", {
+          recipient,
+          message: "User is offline",
+        });
+      }
+    });
 
-    // Handle disconnect
+    // Listen for user disconnect
     socket.on("disconnect", () => {
-      if (email) {
-        onlineUsers.delete(email);
+      console.log("A user disconnected:", socket.id);
 
-        // Broadcast updated online users list
-        io.emit("onlineUsers", Array.from(onlineUsers.entries()));
+      // Remove the user from the online users list
+      for (const [email, socketId] of onlineUsers.entries()) {
+        if (socketId === socket.id) {
+          onlineUsers.delete(email);
 
-        console.log(`(${email}) disconnected.`);
+          // Broadcast the updated list of online users to all clients
+          io.emit("online-users", Array.from(onlineUsers.keys()));
+          break;
+        }
       }
     });
   });
-}
-
-module.exports = initializeSocket;
+};
