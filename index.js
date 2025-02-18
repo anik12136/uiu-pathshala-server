@@ -23,10 +23,12 @@ app.use("/uploads", express.static("public/uploads")); // Serve uploaded files
 const courseRoutes = require("./routes/course.routes");
 const bookMarkRoutes = require("./routes/bookMark.routes");
 const chatRoutes = require("./routes/chat.routes");
+const NotificationsRoutes = require("./routes/notification.routes");
 
 app.use("/api", courseRoutes);
 app.use("/chat", chatRoutes);
 app.use("/BookMark", bookMarkRoutes);
+app.use("/NotificationsRoutes", NotificationsRoutes);
 
 
 // Socket.io
@@ -55,11 +57,13 @@ async function run() {
     const ProgrammingComment = client
       .db("uiu-pathshala")
       .collection("ProgrammingComment");
+    
     const users = client.db("uiu-pathshala").collection("users");
-    const ProgrammingContest = client
-      .db("uiu-pathshala")
-      .collection("ProgrammingContest");
 
+    const ProgrammingContest = client.db("uiu-pathshala").collection("ProgrammingContest");
+
+    const notificationsCollection = client.db("uiu-pathshala").collection("notifications");
+  
     // ============ Anik start====================
     // Demo Courses Route
     app.get("/courses", async (req, res) => {
@@ -630,15 +634,32 @@ async function run() {
       };
 
       try {
+        // Insert contest into database
         const result = await ProgrammingContest.insertOne(contest);
-        res
-          .status(201)
-          .json({
-            message: "Contest created successfully",
-            contestId: result._id,
-          });
+
+        // Fetch all users to send notifications
+        const allUsers = await users.find({}, { projection: { _id: 1 } }).toArray();
+
+        // Create notifications for all users
+        const notifications = allUsers.map((user) => ({
+          userId: user._id,
+          message: `A new programming contest '${title}' has been announced!`,
+          contestId: result.insertedId,
+          isRead: false,
+          createdAt: new Date(),
+        }));
+
+        // Insert notifications into the notifications collection
+        if (notifications.length > 0) {
+          await notificationsCollection.insertMany(notifications);
+        }
+
+        res.status(201).json({
+          message: "Contest created successfully",
+          contestId: result.insertedId,
+        });
       } catch (error) {
-        res.status(500).json({ message: "Error creating contest", error });
+        res.status(500).json({ message: "Error creating contest", error: error.message });
       }
     });
 

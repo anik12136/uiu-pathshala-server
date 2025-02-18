@@ -6,33 +6,58 @@ const { ObjectId } = require("mongodb");  // Import ObjectId from mongodb packag
 const createCourse = async (req, res) => {
   try {
     const { title, description, tags, creator } = req.body;
-    const bannerImage = req.file?.filename; // Path of the uploaded image using multer
+    const bannerImage = req.file?.filename || ""; // Default empty string if no image
 
     const newCourse = {
       title,
-      description: description || "", // Default to empty string
-      tags: tags || "", // Default to empty string
-      bannerImage: bannerImage || "",
+      description: description || "",
+      tags: tags || "",
+      bannerImage,
       creator,
       status: "unpublished", // Default status
       publishedOn: null,
       rating: 0,
       chapters: [],
+      createdAt: new Date(),
     };
 
     const db = await connectDB();
     const courseCollection = db.collection("courses");
+    const usersCollection = db.collection("users");
+    const notificationsCollection = db.collection("notifications");
 
+    // Insert the new course into the database
     const result = await courseCollection.insertOne(newCourse);
-    res
-      .status(201)
-      .json({ message: "Course created successfully", course: result });
+
+    // Fetch all users to send notifications
+    const users = await usersCollection.find({}, { projection: { _id: 1 } }).toArray();
+    console.log(users);
+    
+    // Create notifications for all users
+    const notifications = users.map((user) => ({
+      userId: user._id,
+      message: `A new course '${title}' has been added!`,
+      courseId: result.insertedId,
+      isRead: false,
+      createdAt: new Date(),
+    }));
+
+    // Insert notifications into the notifications collection
+    if (notifications.length > 0) {
+      await notificationsCollection.insertMany(notifications);
+    }
+
+    res.status(201).json({ message: "Course created successfully", course: result });
   } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Failed to create course", details: error.message });
+    res.status(500).json({ error: "Failed to create course", details: error.message });
   }
 };
+
+
+
+
+
+
 
 // Get all courses
 const getAllCourses = async (req, res) => {
