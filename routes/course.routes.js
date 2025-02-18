@@ -10,6 +10,9 @@ router.post(
   courseController.createCourse
 );
 
+
+//Get all videos
+router.get("/allvideos", courseController.getAllVideos);
 // Get all courses
 router.get("/courses", courseController.getAllCourses);
 
@@ -58,5 +61,8 @@ router.delete(
   "/courses/:courseId/chapters/:chapterId",
   courseController.deleteChapter
 );
+
+// update course status
+router.put("/courses/:id/status", courseController.updateCourseStatus);
 
 module.exports = router;

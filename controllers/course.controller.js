@@ -6,33 +6,59 @@ const { ObjectId } = require("mongodb");  // Import ObjectId from mongodb packag
 const createCourse = async (req, res) => {
   try {
     const { title, description, tags, creator } = req.body;
-    const bannerImage = req.file?.filename; // Path of the uploaded image using multer
+    const bannerImage = req.file?.filename || ""; // Default empty string if no image
 
+    const tagsArray = tags?.split(" "); // Convert tags string to array
     const newCourse = {
       title,
       description: description || "", // Default to empty string
-      tags: tags || "", // Default to empty string
+      tags: tagsArray || "", // Default to empty array
       bannerImage: bannerImage || "",
       creator,
-      status: "unpublished", // Default status
+      status: "private", // Default status
       publishedOn: null,
       rating: 0,
       chapters: [],
+      createdAt: new Date(),
     };
 
     const db = await connectDB();
     const courseCollection = db.collection("courses");
+    const usersCollection = db.collection("users");
+    const notificationsCollection = db.collection("notifications");
 
+    // Insert the new course into the database
     const result = await courseCollection.insertOne(newCourse);
-    res
-      .status(201)
-      .json({ message: "Course created successfully", course: result });
+
+    // Fetch all users to send notifications
+    const users = await usersCollection.find({}, { projection: { _id: 1 } }).toArray();
+    console.log(users);
+    
+    // Create notifications for all users
+    const notifications = users.map((user) => ({
+      userId: user._id,
+      message: `A new course '${title}' has been added!`,
+      courseId: result.insertedId,
+      isRead: false,
+      createdAt: new Date(),
+    }));
+
+    // Insert notifications into the notifications collection
+    if (notifications.length > 0) {
+      await notificationsCollection.insertMany(notifications);
+    }
+
+    res.status(201).json({ message: "Course created successfully", course: result });
   } catch (error) {
-    res
-      .status(500)
-      .json({ error: "Failed to create course", details: error.message });
+    res.status(500).json({ error: "Failed to create course", details: error.message });
   }
 };
+
+
+
+
+
+
 
 // Get all courses
 const getAllCourses = async (req, res) => {
@@ -63,6 +89,45 @@ const getAllCourses = async (req, res) => {
       .json({ error: "Failed to fetch courses", details: error.message });
   }
 };
+
+
+// get all videos in all courses with the name of the creators and name of the course and the chapter name along with the video titles and descriptions
+const getAllVideos = async (req, res) => {
+
+  try {
+    const db = await connectDB();
+    const courses = db.collection("courses");
+
+    const result = await courses
+      .aggregate([
+        {
+          $lookup: {
+            from: "users",
+            localField: "creator",
+            foreignField: "_id",
+            as: "creatorDetails",
+          },
+        },
+        {
+          $unwind: "$creatorDetails",
+        },
+        {
+          $unwind: "$chapters",
+        },
+        {
+          $unwind: "$chapters.videos",
+        },
+      ])
+      .toArray();
+
+    res.status(200).json(result);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Failed to fetch videos", details: error.message });
+  }
+
+}
 
 // Get all courses by a specific user
 const getCoursesByUser = async (req, res) => {
@@ -140,6 +205,7 @@ const getCourseById = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch course", details: error.message });
   }
 };
+
 
 
 
@@ -353,16 +419,50 @@ const updateChapterDescription = async (req, res) => {
   }
 };
 
+// update status of a course (published/private)
+const updateCourseStatus = async (req, res) => {
+
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const { publishedOn } = new Date();
+
+    const db = await connectDB();
+    const courses = db.collection("courses");
+
+    const result = await courses.updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $set: {
+          status,
+          publishedOn: new Date(), // Set to the current date and time
+        },
+      }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    res.status(200).json({ message: "Course status updated successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update course status", details: error.message });
+  }
+
+}
+
 
 module.exports = {
   createCourse,
   getAllCourses,
+  getAllVideos,
   getCoursesByUser,
   getCourseById,
   addChapter,
   addVideo,
   deleteChapter,
   deleteCourse,
+  updateCourseStatus,
   updateChapterDescription,
   updateChapterTitle,
   updateCourseDescription,
