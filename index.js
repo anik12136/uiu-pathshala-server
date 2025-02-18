@@ -647,7 +647,7 @@ async function run() {
         // Create notifications for all users
         const notifications = allUsers.map((user) => ({
           userId: user._id,
-          message: `A new programming contest '${title}' has been announced!`,
+          message: `🚀 A new programming contest '${title}' has been announced! 🏆`,
           contestId: result.insertedId,
           isRead: false,
           createdAt: new Date(),

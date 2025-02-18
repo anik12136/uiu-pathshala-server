@@ -37,7 +37,7 @@ const createCourse = async (req, res) => {
     // Create notifications for all users
     const notifications = users.map((user) => ({
       userId: user._id,
-      message: `A new course '${title}' has been added!`,
+      message: `📚 A new course '${title}' has been added! 🎉`,
       courseId: result.insertedId,
       isRead: false,
       createdAt: new Date(),
