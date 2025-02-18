@@ -17,16 +17,18 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
-app.use("/uploads", express.static("public/uploads")); // Serve uploaded files
+app.use("/uploads", express.static("public/uploads")); // anik
 
 // Routes
 const courseRoutes = require("./routes/course.routes");
 const bookMarkRoutes = require("./routes/bookMark.routes");
 const chatRoutes = require("./routes/chat.routes");
+const uploadRoutes = require('./routes/uploadRoutes'); //anik
 
 app.use("/api", courseRoutes);
 app.use("/chat", chatRoutes);
 app.use("/BookMark", bookMarkRoutes);
+app.use('/uploads', express.static('uploads')); //anik
 
 
 // Socket.io
@@ -46,6 +48,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     const courses = client.db("uiu-pathshala").collection("courses");
+    const bookMarks = client.db("uiu-pathshala").collection("BookMark");
     const GeneralCommunity = client
       .db("uiu-pathshala")
       .collection("GeneralCommunity");
@@ -61,6 +64,9 @@ async function run() {
       .collection("ProgrammingContest");
 
     // ============ Anik start====================
+
+    app.use('/api/upload', uploadRoutes); //anik
+
     // Demo Courses Route
     app.get("/courses", async (req, res) => {
       const result = await courses.find().toArray();
@@ -107,6 +113,7 @@ async function run() {
       res.send(result);
     });
 
+    // Admin Dashboard start----------
     // Delete user by ID
     app.delete('/users/:id', async (req, res) => {
       try {
@@ -141,7 +148,21 @@ async function run() {
         res.status(500).json({ message: 'Server error', error });
       }
     });
+    // Admin Dashboard end===============
 
+    // Student Dashboard start===========
+    // dashboard courses
+    app.get("/bookMarks/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await bookMarks.find({ createBy: email, type:"course" }).toArray();
+      res.send(result);
+    });
+    // dashboard myContest
+    app.get("/myContest/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await bookMarks.find({ createBy: email, type:"contest" }).toArray();
+      res.send(result);
+    });
 
 
     // ============ Anik end====================
