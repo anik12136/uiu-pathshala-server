@@ -85,11 +85,15 @@ async function run() {
       res.send(result);
     });
 
-    // only one user api
+    // single user
     app.get("/dbUser/:email", async (req, res) => {
-      const email = req.params.email;
-      const result = await users.findOne({ email: email });
-      res.send(result);
+      const email = req.params.email; // Get email from URL parameter
+      const result = await users.findOne({ email: email }); // Query the database for user by email
+      if (result) {
+        res.send(result); // Send the user data back
+      } else {
+        res.status(404).send({ message: "User not found" }); // Handle case where user is not found
+      }
     });
 
     // All users

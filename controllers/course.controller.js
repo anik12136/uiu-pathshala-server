@@ -54,12 +54,6 @@ const createCourse = async (req, res) => {
   }
 };
 
-
-
-
-
-
-
 // Get all courses
 const getAllCourses = async (req, res) => {
   try {
