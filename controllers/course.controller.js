@@ -8,13 +8,14 @@ const createCourse = async (req, res) => {
     const { title, description, tags, creator } = req.body;
     const bannerImage = req.file?.filename; // Path of the uploaded image using multer
 
+    const tagsArray = tags?.split(" "); // Convert tags string to array
     const newCourse = {
       title,
       description: description || "", // Default to empty string
-      tags: tags || "", // Default to empty string
+      tags: tagsArray || "", // Default to empty array
       bannerImage: bannerImage || "",
       creator,
-      status: "unpublished", // Default status
+      status: "private", // Default status
       publishedOn: null,
       rating: 0,
       chapters: [],
@@ -63,6 +64,45 @@ const getAllCourses = async (req, res) => {
       .json({ error: "Failed to fetch courses", details: error.message });
   }
 };
+
+
+// get all videos in all courses with the name of the creators and name of the course and the chapter name along with the video titles and descriptions
+const getAllVideos = async (req, res) => {
+
+  try {
+    const db = await connectDB();
+    const courses = db.collection("courses");
+
+    const result = await courses
+      .aggregate([
+        {
+          $lookup: {
+            from: "users",
+            localField: "creator",
+            foreignField: "_id",
+            as: "creatorDetails",
+          },
+        },
+        {
+          $unwind: "$creatorDetails",
+        },
+        {
+          $unwind: "$chapters",
+        },
+        {
+          $unwind: "$chapters.videos",
+        },
+      ])
+      .toArray();
+
+    res.status(200).json(result);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ error: "Failed to fetch videos", details: error.message });
+  }
+
+}
 
 // Get all courses by a specific user
 const getCoursesByUser = async (req, res) => {
@@ -140,6 +180,7 @@ const getCourseById = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch course", details: error.message });
   }
 };
+
 
 
 
@@ -353,16 +394,50 @@ const updateChapterDescription = async (req, res) => {
   }
 };
 
+// update status of a course (published/private)
+const updateCourseStatus = async (req, res) => {
+
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const { publishedOn } = new Date();
+
+    const db = await connectDB();
+    const courses = db.collection("courses");
+
+    const result = await courses.updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $set: {
+          status,
+          publishedOn: new Date(), // Set to the current date and time
+        },
+      }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    res.status(200).json({ message: "Course status updated successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update course status", details: error.message });
+  }
+
+}
+
 
 module.exports = {
   createCourse,
   getAllCourses,
+  getAllVideos,
   getCoursesByUser,
   getCourseById,
   addChapter,
   addVideo,
   deleteChapter,
   deleteCourse,
+  updateCourseStatus,
   updateChapterDescription,
   updateChapterTitle,
   updateCourseDescription,
