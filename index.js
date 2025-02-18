@@ -24,11 +24,13 @@ const courseRoutes = require("./routes/course.routes");
 const bookMarkRoutes = require("./routes/bookMark.routes");
 const chatRoutes = require("./routes/chat.routes");
 const uploadRoutes = require('./routes/uploadRoutes'); //anik
+const NotificationsRoutes = require("./routes/notification.routes");
 
 app.use("/api", courseRoutes);
 app.use("/chat", chatRoutes);
 app.use("/BookMark", bookMarkRoutes);
 app.use('/uploads', express.static('uploads')); //anik
+app.use("/NotificationsRoutes", NotificationsRoutes);
 
 
 // Socket.io
@@ -58,11 +60,13 @@ async function run() {
     const ProgrammingComment = client
       .db("uiu-pathshala")
       .collection("ProgrammingComment");
+    
     const users = client.db("uiu-pathshala").collection("users");
-    const ProgrammingContest = client
-      .db("uiu-pathshala")
-      .collection("ProgrammingContest");
 
+    const ProgrammingContest = client.db("uiu-pathshala").collection("ProgrammingContest");
+
+    const notificationsCollection = client.db("uiu-pathshala").collection("notifications");
+  
     // ============ Anik start====================
 
     app.use('/api/upload', uploadRoutes); //anik
@@ -87,11 +91,15 @@ async function run() {
       res.send(result);
     });
 
-    // only one user api
+    // single user
     app.get("/dbUser/:email", async (req, res) => {
-      const email = req.params.email;
-      const result = await users.findOne({ email: email });
-      res.send(result);
+      const email = req.params.email; // Get email from URL parameter
+      const result = await users.findOne({ email: email }); // Query the database for user by email
+      if (result) {
+        res.send(result); // Send the user data back
+      } else {
+        res.status(404).send({ message: "User not found" }); // Handle case where user is not found
+      }
     });
 
     // All users
@@ -651,15 +659,32 @@ async function run() {
       };
 
       try {
+        // Insert contest into database
         const result = await ProgrammingContest.insertOne(contest);
-        res
-          .status(201)
-          .json({
-            message: "Contest created successfully",
-            contestId: result._id,
-          });
+
+        // Fetch all users to send notifications
+        const allUsers = await users.find({}, { projection: { _id: 1 } }).toArray();
+
+        // Create notifications for all users
+        const notifications = allUsers.map((user) => ({
+          userId: user._id,
+          message: `🚀 A new programming contest '${title}' has been announced! 🏆`,
+          contestId: result.insertedId,
+          isRead: false,
+          createdAt: new Date(),
+        }));
+
+        // Insert notifications into the notifications collection
+        if (notifications.length > 0) {
+          await notificationsCollection.insertMany(notifications);
+        }
+
+        res.status(201).json({
+          message: "Contest created successfully",
+          contestId: result.insertedId,
+        });
       } catch (error) {
-        res.status(500).json({ message: "Error creating contest", error });
+        res.status(500).json({ message: "Error creating contest", error: error.message });
       }
     });
 
