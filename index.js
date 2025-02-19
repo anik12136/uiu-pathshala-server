@@ -20,6 +20,7 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use("/uploads", express.static("public/uploads")); // anik
 app.use(express.json());
 
+
 // Routes
 const courseRoutes = require("./routes/course.routes");
 const bookMarkRoutes = require("./routes/bookMark.routes");

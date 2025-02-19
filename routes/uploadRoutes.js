@@ -87,6 +87,15 @@ const cloudinary = require('cloudinary').v2;
 const { Readable } = require('stream');
 const path = require('path');
 require('dotenv').config();
+const cors = require('cors');
+const router = express.Router();
+
+router.use(cors({ origin: 'http://localhost:5173' })); // Allow frontend URL
+
+const upload = multer({ storage: multer.memoryStorage() });
+router.post('/', upload.single('file'), async (req, res) => {
+  res.json({ message: 'File uploaded successfully' });
+});
 
 
 module.exports = (db) => {
