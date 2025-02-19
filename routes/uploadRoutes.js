@@ -127,6 +127,7 @@ module.exports = (db) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
+    const pdf = req.body.pdf;
     const email = req.body.email;
     if (!email) {
       return res.status(400).json({ message: 'Email is required' });
@@ -150,6 +151,7 @@ module.exports = (db) => {
         size: req.file.size,
         uploadDate: new Date(),
         createdBy: email,
+        pdfType:pdf,
         cloudinaryUrl: uploadResult.secure_url,
         cloudinaryPublicId: uploadResult.public_id,
       };
@@ -170,7 +172,21 @@ module.exports = (db) => {
   router.get('/files', async (req, res) => {
     try {
       const email = req.query.email;
-      const query = email ? { createdBy: email } : {};
+      const pdf = "pdf";
+      const query = email ? { createdBy: email, pdfType:pdf } : {};
+      const files = await db.collection('pdf').find(query).toArray();
+      res.json(files);
+    } catch (error) {
+      console.error('Error retrieving PDFs:', error);
+      res.status(500).json({ message: 'Failed to retrieve PDFs' });
+    }
+  });
+  // Get user books
+  router.get('/books', async (req, res) => {
+    try {
+      const email = req.query.email;
+      const pdf = "bookPdf";
+      const query = email ? { createdBy: email, pdfType:pdf } : {};
       const files = await db.collection('pdf').find(query).toArray();
       res.json(files);
     } catch (error) {
