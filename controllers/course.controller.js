@@ -85,6 +85,28 @@ const getAllCourses = async (req, res) => {
 };
 
 
+
+function extractVideos(courses) {
+  return courses.flatMap(course => 
+    course.chapters.flatMap(chapter => 
+      chapter.videos.map(video => ({
+        videoId: video._id,
+        title: video.title,
+        description: video.description,
+        filename: video.filename,
+        courseTitle: course.title,
+        courseId: course._id,
+        chapterTitle: chapter.title,
+        chapterId: chapter._id,
+        creatorName: course.creatorDetails.name,
+        creatorEmail: course.creatorDetails.email,
+        courseTags: course.tags
+      }))
+    )
+  );
+}
+
+
 // get all videos in all courses with the name of the creators and name of the course and the chapter name along with the video titles and descriptions
 const getAllVideos = async (req, res) => {
 
@@ -98,28 +120,26 @@ const getAllVideos = async (req, res) => {
           $lookup: {
             from: "users",
             localField: "creator",
-            foreignField: "_id",
+            foreignField: "email",
             as: "creatorDetails",
           },
         },
         {
           $unwind: "$creatorDetails",
         },
-        {
-          $unwind: "$chapters",
-        },
-        {
-          $unwind: "$chapters.videos",
-        },
       ])
       .toArray();
 
-    res.status(200).json(result);
+    const videos = extractVideos(result);
+
+    res.status(200).json(videos);
+
   } catch (error) {
     res
       .status(500)
-      .json({ error: "Failed to fetch videos", details: error.message });
+      .json({ error: "Failed to fetch all videos", details: error.message });
   }
+  
 
 }
 
