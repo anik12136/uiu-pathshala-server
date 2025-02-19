@@ -194,6 +194,32 @@ module.exports = (db) => {
       res.status(500).json({ message: 'Failed to retrieve PDFs' });
     }
   });
+  // Get user Notes
+  router.get('/notes', async (req, res) => {
+    try {
+      const email = req.query.email;
+      const pdf = "notePdf";
+      const query = email ? { createdBy: email, pdfType:pdf } : {};
+      const files = await db.collection('pdf').find(query).toArray();
+      res.json(files);
+    } catch (error) {
+      console.error('Error retrieving PDFs:', error);
+      res.status(500).json({ message: 'Failed to retrieve PDFs' });
+    }
+  });
+  // Get user Questions
+  router.get('/questions', async (req, res) => {
+    try {
+      const email = req.query.email;
+      const pdf = "questionPdf";
+      const query = email ? { createdBy: email, pdfType:pdf } : {};
+      const files = await db.collection('pdf').find(query).toArray();
+      res.json(files);
+    } catch (error) {
+      console.error('Error retrieving PDFs:', error);
+      res.status(500).json({ message: 'Failed to retrieve PDFs' });
+    }
+  });
 
   return router;
 };
