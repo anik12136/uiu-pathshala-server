@@ -18,6 +18,7 @@ app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use("/uploads", express.static("public/uploads")); // anik
+app.use(express.json());
 
 // Routes
 const courseRoutes = require("./routes/course.routes");
@@ -38,6 +39,7 @@ messaging(io);
 //============Socket code ends here ====================
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.00oqpy6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+const dbName = 'uiu-pathshala'; //anik
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -66,11 +68,13 @@ async function run() {
     const ProgrammingContest = client.db("uiu-pathshala").collection("ProgrammingContest");
 
     const notificationsCollection = client.db("uiu-pathshala").collection("notifications");
-  
+    const pdf = client.db("uiu-pathshala").collection("pdf"); //anik
+   
     // ============ Anik start====================
 
-    app.use('/api/upload', uploadRoutes); //anik
-
+    const db = client.db(dbName);
+    app.use('/api/upload', uploadRoutes(db));
+    
     // Demo Courses Route
     app.get("/courses", async (req, res) => {
       const result = await courses.find().toArray();
