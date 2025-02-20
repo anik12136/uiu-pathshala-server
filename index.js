@@ -4,11 +4,15 @@ const express = require("express");
 const cors = require("cors");
 const { Server } = require("socket.io");
 const messaging = require("./utils/socketHandler");
+//================================multer upload=============================
+const upload = require("./middleware/upload");
 
-console.log("================================================================================================================");
+console.log(
+  "================================================================================================================"
+);
 const app = express();
 const server = http.createServer(app);
-const io = require('socket.io')(server);
+const io = require("socket.io")(server);
 
 require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
@@ -29,7 +33,6 @@ app.use("/api", courseRoutes);
 app.use("/chat", chatRoutes);
 app.use("/BookMark", bookMarkRoutes);
 app.use("/NotificationsRoutes", NotificationsRoutes);
-
 
 // Socket.io
 messaging(io);
@@ -57,13 +60,28 @@ async function run() {
     const ProgrammingComment = client
       .db("uiu-pathshala")
       .collection("ProgrammingComment");
-    
+
     const users = client.db("uiu-pathshala").collection("users");
 
-    const ProgrammingContest = client.db("uiu-pathshala").collection("ProgrammingContest");
+    const ProgrammingContest = client
+      .db("uiu-pathshala")
+      .collection("ProgrammingContest");
 
-    const notificationsCollection = client.db("uiu-pathshala").collection("notifications");
-  
+    const notificationsCollection = client
+      .db("uiu-pathshala")
+      .collection("notifications");
+
+    //=======================================Yamin Starts Here===================================================
+    app.post("/pdf-uploads",upload.single('pdfFile'),(req,res)=>{
+      console.log("PDF file uploader API is hitting");
+      console.log(req.file.filename);
+      uploadOnCloudinary(`./public/uploads${req.file.filename}`)
+      res.send(req.file);
+    })
+
+
+    //====================================Yamin Ends here============================================
+
     // ============ Anik start====================
     // Demo Courses Route
     app.get("/courses", async (req, res) => {
@@ -105,29 +123,30 @@ async function run() {
     });
 
     // Get user by ID
-    app.get('/users/:id', async (req, res) => {
+    app.get("/users/:id", async (req, res) => {
       const id = req.params.id;
       const result = await users.findOne({ _id: new ObjectId(id) });
       res.send(result);
     });
 
     // Delete user by ID
-    app.delete('/users/:id', async (req, res) => {
+    app.delete("/users/:id", async (req, res) => {
       try {
         const id = req.params.id;
-        const user = await users.deleteOne({ _id: new ObjectId(req.params.id) });
+        const user = await users.deleteOne({
+          _id: new ObjectId(req.params.id),
+        });
         if (!user) {
-          return res.status(404).json({ message: 'User not found' });
+          return res.status(404).json({ message: "User not found" });
         }
-        res.json({ message: 'User deleted successfully' });
+        res.json({ message: "User deleted successfully" });
       } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+        res.status(500).json({ message: "Server error", error });
       }
     });
 
-
     // Warning
-    app.put('/users/:id', async (req, res) => {
+    app.put("/users/:id", async (req, res) => {
       try {
         const id = req.params.id;
         const updateData = req.body;
@@ -137,16 +156,14 @@ async function run() {
         );
 
         if (result.matchedCount === 0) {
-          return res.status(404).json({ message: 'User not found' });
+          return res.status(404).json({ message: "User not found" });
         }
 
-        res.json({ message: 'User updated successfully', result });
+        res.json({ message: "User updated successfully", result });
       } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+        res.status(500).json({ message: "Server error", error });
       }
     });
-
-
 
     // ============ Anik end====================
 
@@ -181,12 +198,10 @@ async function run() {
 
       try {
         const result = await GeneralCommunity.insertOne(post);
-        res
-          .status(201)
-          .json({
-            message: "Post created successfully",
-            postId: result.insertedId,
-          });
+        res.status(201).json({
+          message: "Post created successfully",
+          postId: result.insertedId,
+        });
       } catch (error) {
         res.status(500).json({ message: "Error creating post", error });
       }
@@ -263,11 +278,9 @@ async function run() {
         // Delete the post
         await GeneralCommunity.deleteOne({ _id: new ObjectId(postId) });
 
-        res
-          .status(200)
-          .json({
-            message: "Post and associated content deleted successfully",
-          });
+        res.status(200).json({
+          message: "Post and associated content deleted successfully",
+        });
       } catch (error) {
         res.status(500).json({ message: "Error deleting post", error });
       }
@@ -315,12 +328,10 @@ async function run() {
 
       try {
         const result = await GeneralCommunity.insertOne(comment);
-        res
-          .status(201)
-          .json({
-            message: "Comment created successfully",
-            commentId: result.insertedId,
-          });
+        res.status(201).json({
+          message: "Comment created successfully",
+          commentId: result.insertedId,
+        });
       } catch (error) {
         res.status(500).json({ message: "Error creating comment", error });
       }
@@ -638,7 +649,9 @@ async function run() {
         const result = await ProgrammingContest.insertOne(contest);
 
         // Fetch all users to send notifications
-        const allUsers = await users.find({}, { projection: { _id: 1 } }).toArray();
+        const allUsers = await users
+          .find({}, { projection: { _id: 1 } })
+          .toArray();
 
         // Create notifications for all users
         const notifications = allUsers.map((user) => ({
@@ -659,7 +672,9 @@ async function run() {
           contestId: result.insertedId,
         });
       } catch (error) {
-        res.status(500).json({ message: "Error creating contest", error: error.message });
+        res
+          .status(500)
+          .json({ message: "Error creating contest", error: error.message });
       }
     });
 
@@ -726,8 +741,6 @@ run().catch(console.dir);
 app.get("/", (req, res) => {
   res.send("UIU-Pathshala is Running");
 });
-
-
 
 app.listen(port, () => {
   console.log(`UIU-Pathshala API is running on port: ${port}`);
