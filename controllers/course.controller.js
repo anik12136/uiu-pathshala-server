@@ -146,20 +146,26 @@ const getAllVideos = async (req, res) => {
 // Get all courses by a specific user
 const getCoursesByUser = async (req, res) => {
   try {
-    const { userId } = req.params;
-    const db = await connectDB();
-    const courses = db.collection("courses");
+    // Get the creator's email from URL parameters or query string
+    const creatorEmail = req.params.email;
+    if (!creatorEmail) {
+      return res.status(400).json({ error: "Creator email is required" });
+    }
 
-    const result = await courses
+    const db = await connectDB();
+    const coursesCollection = db.collection("courses");
+
+    const result = await coursesCollection
       .aggregate([
+        // First filter courses by creator email
         {
-          $match: { creator: userId },
+          $match: { creator: creatorEmail },
         },
         {
           $lookup: {
             from: "users",
             localField: "creator",
-            foreignField: "_id",
+            foreignField: "email",
             as: "creatorDetails",
           },
         },
@@ -169,17 +175,11 @@ const getCoursesByUser = async (req, res) => {
       ])
       .toArray();
 
-    if (!result.length) {
-      return res
-        .status(404)
-        .json({ message: "No courses found for this user" });
-    }
-
     res.status(200).json(result);
   } catch (error) {
     res
       .status(500)
-      .json({ error: "Failed to fetch user courses", details: error.message });
+      .json({ error: "Failed to fetch courses", details: error.message });
   }
 };
 
@@ -439,7 +439,6 @@ const updateCourseStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-    const { publishedOn } = new Date();
 
     const db = await connectDB();
     const courses = db.collection("courses");
@@ -460,6 +459,7 @@ const updateCourseStatus = async (req, res) => {
 
     res.status(200).json({ message: "Course status updated successfully" });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error: "Failed to update course status", details: error.message });
   }
 
