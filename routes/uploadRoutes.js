@@ -221,5 +221,19 @@ module.exports = (db) => {
     }
   });
 
+  //get all pdf ,books,notes ,questions for explore
+
+  router.get('/explore', async (req, res) => {
+    try {
+      const files = await db.collection('pdf').find().toArray();
+      res.json(files);
+    } catch (error) {
+      console.error('Error retrieving files:', error);
+      res.status(500).json({ message: 'Failed to retrieve files' });
+    }
+  });
+
+
+
   return router;
 };
