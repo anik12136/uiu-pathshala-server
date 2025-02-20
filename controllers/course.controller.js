@@ -37,7 +37,7 @@ const createCourse = async (req, res) => {
     // Create notifications for all users
     const notifications = users.map((user) => ({
       userId: user._id,
-      message: `A new course '${title}' has been added!`,
+      message: `📚 A new course '${title}' has been added! 🎉`,
       courseId: result.insertedId,
       isRead: false,
       createdAt: new Date(),
@@ -53,12 +53,6 @@ const createCourse = async (req, res) => {
     res.status(500).json({ error: "Failed to create course", details: error.message });
   }
 };
-
-
-
-
-
-
 
 // Get all courses
 const getAllCourses = async (req, res) => {
@@ -91,6 +85,28 @@ const getAllCourses = async (req, res) => {
 };
 
 
+
+function extractVideos(courses) {
+  return courses.flatMap(course => 
+    course.chapters.flatMap(chapter => 
+      chapter.videos.map(video => ({
+        videoId: video._id,
+        title: video.title,
+        description: video.description,
+        filename: video.filename,
+        courseTitle: course.title,
+        courseId: course._id,
+        chapterTitle: chapter.title,
+        chapterId: chapter._id,
+        creatorName: course.creatorDetails.name,
+        creatorEmail: course.creatorDetails.email,
+        courseTags: course.tags
+      }))
+    )
+  );
+}
+
+
 // get all videos in all courses with the name of the creators and name of the course and the chapter name along with the video titles and descriptions
 const getAllVideos = async (req, res) => {
 
@@ -104,48 +120,52 @@ const getAllVideos = async (req, res) => {
           $lookup: {
             from: "users",
             localField: "creator",
-            foreignField: "_id",
+            foreignField: "email",
             as: "creatorDetails",
           },
         },
         {
           $unwind: "$creatorDetails",
         },
-        {
-          $unwind: "$chapters",
-        },
-        {
-          $unwind: "$chapters.videos",
-        },
       ])
       .toArray();
 
-    res.status(200).json(result);
+    const videos = extractVideos(result);
+
+    res.status(200).json(videos);
+
   } catch (error) {
     res
       .status(500)
-      .json({ error: "Failed to fetch videos", details: error.message });
+      .json({ error: "Failed to fetch all videos", details: error.message });
   }
+  
 
 }
 
 // Get all courses by a specific user
 const getCoursesByUser = async (req, res) => {
   try {
-    const { userId } = req.params;
-    const db = await connectDB();
-    const courses = db.collection("courses");
+    // Get the creator's email from URL parameters or query string
+    const creatorEmail = req.params.email;
+    if (!creatorEmail) {
+      return res.status(400).json({ error: "Creator email is required" });
+    }
 
-    const result = await courses
+    const db = await connectDB();
+    const coursesCollection = db.collection("courses");
+
+    const result = await coursesCollection
       .aggregate([
+        // First filter courses by creator email
         {
-          $match: { creator: userId },
+          $match: { creator: creatorEmail },
         },
         {
           $lookup: {
             from: "users",
             localField: "creator",
-            foreignField: "_id",
+            foreignField: "email",
             as: "creatorDetails",
           },
         },
@@ -155,17 +175,11 @@ const getCoursesByUser = async (req, res) => {
       ])
       .toArray();
 
-    if (!result.length) {
-      return res
-        .status(404)
-        .json({ message: "No courses found for this user" });
-    }
-
     res.status(200).json(result);
   } catch (error) {
     res
       .status(500)
-      .json({ error: "Failed to fetch user courses", details: error.message });
+      .json({ error: "Failed to fetch courses", details: error.message });
   }
 };
 
@@ -425,7 +439,6 @@ const updateCourseStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-    const { publishedOn } = new Date();
 
     const db = await connectDB();
     const courses = db.collection("courses");
@@ -446,6 +459,7 @@ const updateCourseStatus = async (req, res) => {
 
     res.status(200).json({ message: "Course status updated successfully" });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ error: "Failed to update course status", details: error.message });
   }
 

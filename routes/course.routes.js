@@ -20,7 +20,7 @@ router.get("/courses", courseController.getAllCourses);
 router.get("/courses/:id", courseController.getCourseById);
 
 // Get all courses by a specific user
-router.get("/courses/user/:userId", courseController.getCoursesByUser);
+router.get("/courses/user/:email", courseController.getCoursesByUser);
 
 // Update a course title
 router.put("/courses/:id/title", courseController.updateCourseTitle);

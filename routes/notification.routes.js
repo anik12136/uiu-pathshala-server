@@ -8,4 +8,5 @@ router.get("/getNotifications/:userId", notificationsController.getNotifications
 //  Mark all notifications as read for a user
 router.post("/markAsRead", notificationsController.markNotificationsAsRead);
 
+
 module.exports = router;
