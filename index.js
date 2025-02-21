@@ -63,19 +63,86 @@ async function run() {
     const ProgrammingComment = client
       .db("uiu-pathshala")
       .collection("ProgrammingComment");
-    
+
     const users = client.db("uiu-pathshala").collection("users");
 
     const ProgrammingContest = client.db("uiu-pathshala").collection("ProgrammingContest");
 
     const notificationsCollection = client.db("uiu-pathshala").collection("notifications");
     const pdf = client.db("uiu-pathshala").collection("pdf"); //anik
-   
+    const announcements = client.db("uiu-pathshala").collection("announcements");
+
     // ============ Anik start====================
 
     const db = client.db(dbName);
     app.use('/api/upload', uploadRoutes(db));
-    
+
+    // -----------Announcements start---------------
+
+    app.post("/announcements", async (req, res) => {
+      const { title, description } = req.body;
+
+      if (!title || !description) {
+        return res.status(400).json({ error: "Title and description are required" });
+      }
+
+      try {
+        const newAnnouncement = {
+          title,
+          description,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        const result = await announcements.insertOne(newAnnouncement);
+        res.status(201).json({ _id: result.insertedId, ...newAnnouncement });
+      } catch (error) {
+        res.status(500).json({ error: "Failed to create announcement" });
+      }
+    });
+
+    app.get("/announcements", async (req, res) => {
+      try {
+        const allAnnouncements = await announcements
+          .find()
+          .sort({ updatedAt: -1 }) // Sort newest first
+          .toArray();
+
+        res.json(allAnnouncements);
+      } catch (error) {
+        res.status(500).json({ error: "Failed to fetch announcements" });
+      }
+    });
+
+    // Update Announcement (PUT)
+    app.put("/announcements/:id", async (req, res) => {
+      const { id } = req.params;
+      const { title, description } = req.body;
+
+      try {
+        const updatedAnnouncement = await announcements.findOneAndUpdate(
+          { _id: new ObjectId(id) },
+          { $set: { title, description, updatedAt: new Date() } },
+          { returnDocument: "after" }
+        );
+        res.json(updatedAnnouncement.value);
+      } catch (error) {
+        res.status(500).json({ error: "Failed to update announcement" });
+      }
+    });
+
+    // Delete Announcement (DELETE)
+    app.delete("/announcements/:id", async (req, res) => {
+      await announcements.deleteOne({ _id: new ObjectId(req.params.id) });
+      res.json({ message: "Announcement deleted successfully" });
+    });
+
+
+
+
+
+    // Announcements end-------------
+
     // Demo Courses Route
     app.get("/courses", async (req, res) => {
       const result = await courses.find().toArray();
@@ -167,13 +234,13 @@ async function run() {
     // dashboard courses
     app.get("/bookMarks/:email", async (req, res) => {
       const email = req.params.email;
-      const result = await bookMarks.find({ createBy: email, type:"course" }).toArray();
+      const result = await bookMarks.find({ createBy: email, type: "course" }).toArray();
       res.send(result);
     });
     // dashboard myContest
     app.get("/myContest/:email", async (req, res) => {
       const email = req.params.email;
-      const result = await bookMarks.find({ createBy: email, type:"contest" }).toArray();
+      const result = await bookMarks.find({ createBy: email, type: "contest" }).toArray();
       res.send(result);
     });
 
