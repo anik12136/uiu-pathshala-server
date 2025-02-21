@@ -151,7 +151,7 @@ module.exports = (db) => {
         size: req.file.size,
         uploadDate: new Date(),
         createdBy: email,
-        pdfType:pdf,
+        pdfType: pdf,
         cloudinaryUrl: uploadResult.secure_url,
         cloudinaryPublicId: uploadResult.public_id,
       };
@@ -173,7 +173,7 @@ module.exports = (db) => {
     try {
       const email = req.query.email;
       const pdf = "pdf";
-      const query = email ? { createdBy: email, pdfType:pdf } : {};
+      const query = email ? { createdBy: email, pdfType: pdf } : {};
       const files = await db.collection('pdf').find(query).toArray();
       res.json(files);
     } catch (error) {
@@ -186,7 +186,7 @@ module.exports = (db) => {
     try {
       const email = req.query.email;
       const pdf = "bookPdf";
-      const query = email ? { createdBy: email, pdfType:pdf } : {};
+      const query = email ? { createdBy: email, pdfType: pdf } : {};
       const files = await db.collection('pdf').find(query).toArray();
       res.json(files);
     } catch (error) {
@@ -194,12 +194,13 @@ module.exports = (db) => {
       res.status(500).json({ message: 'Failed to retrieve PDFs' });
     }
   });
+
   // Get user Notes
   router.get('/notes', async (req, res) => {
     try {
       const email = req.query.email;
       const pdf = "notePdf";
-      const query = email ? { createdBy: email, pdfType:pdf } : {};
+      const query = email ? { createdBy: email, pdfType: pdf } : {};
       const files = await db.collection('pdf').find(query).toArray();
       res.json(files);
     } catch (error) {
@@ -212,7 +213,7 @@ module.exports = (db) => {
     try {
       const email = req.query.email;
       const pdf = "questionPdf";
-      const query = email ? { createdBy: email, pdfType:pdf } : {};
+      const query = email ? { createdBy: email, pdfType: pdf } : {};
       const files = await db.collection('pdf').find(query).toArray();
       res.json(files);
     } catch (error) {
@@ -230,6 +231,43 @@ module.exports = (db) => {
     } catch (error) {
       console.error('Error retrieving files:', error);
       res.status(500).json({ message: 'Failed to retrieve files' });
+    }
+  });
+
+  const { ObjectId } = require('mongodb'); // Import ObjectId for MongoDB
+
+  // Delete a PDF/book/note/question by ID====================
+  router.delete('/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: 'Invalid ID format' });
+      }
+
+      // Find the file in the database
+      const file = await db.collection('pdf').findOne({ _id: new ObjectId(id) });
+
+      if (!file) {
+        return res.status(404).json({ message: 'File not found' });
+      }
+
+      // Delete from Cloudinary (if applicable)
+      if (file.cloudinaryPublicId) {
+        try {
+          await cloudinary.uploader.destroy(file.cloudinaryPublicId, { resource_type: 'raw' });
+        } catch (cloudinaryError) {
+          console.error('Error deleting from Cloudinary:', cloudinaryError);
+        }
+      }
+
+      // Delete from MongoDB
+      await db.collection('pdf').deleteOne({ _id: new ObjectId(id) });
+
+      res.json({ message: 'File deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      res.status(500).json({ message: 'Failed to delete file' });
     }
   });
 
