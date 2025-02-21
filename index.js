@@ -74,11 +74,12 @@ async function run() {
       .collection("ProgrammingContest");
 
     //=======================================Yamin Starts Here===================================================
-    app.post("/pdf-uploads",upload.single('pdfFile'),(req,res)=>{
+    app.post("/books",upload.single('file'),(req,res)=>{
       console.log("PDF file uploader API is hitting");
-      console.log(req.file.filename);
-      uploadOnCloudinary(`./public/uploads${req.file.filename}`)
-      res.send(req.file);
+      // console.log(req.file);
+      // console.log(req.body);
+      // uploadOnCloudinary(`./public/uploads${req.file.filename}`)
+      res.send({body:req.body,file:req.file?.filename});
     })
 
 
