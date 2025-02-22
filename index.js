@@ -199,6 +199,51 @@ async function run() {
       }
     });
 
+    //db updated single user data
+
+    app.patch("/dbUser/users", async (req, res) => {
+     
+      try {
+        const updatedUser = req.body;
+        console.log(updatedUser);// Get user data from request body
+        const query = { email: updatedUser.email }; // Find user by email
+
+        const existingUser = await users.findOne(query);
+
+        if (!existingUser) {
+          return res.status(404).send({ message: "User not found" });
+        }
+
+        const updateDoc = {
+          $set: {
+            name: updatedUser.name || existingUser.name,
+            photoURL: updatedUser.photoURL || existingUser.photoURL,
+          
+            rating: updatedUser.rating !== undefined ? updatedUser.rating : existingUser.rating,
+            department: updatedUser.department || existingUser.department,
+            studentID: updatedUser.studentID || existingUser.studentID,
+          },
+        };
+
+        const result = await users.updateOne(query, updateDoc);
+
+        if (result.modifiedCount > 0) {
+          res.send({ message: "User updated successfully", success: true });
+        } else {
+          res.send({ message: "No changes were made", success: false });
+        }
+      } catch (error) {
+        console.error("Error updating user:", error);
+        res.status(500).send({ message: "Internal server error", error });
+      }
+    });
+
+
+
+
+
+
+
     // All users
     app.get("/allUsers", async (req, res) => {
       const result = await users.find().toArray();
@@ -254,6 +299,11 @@ async function run() {
         res.status(500).json({ message: "Server error", error });
       }
     });
+
+
+
+
+
     // Admin Dashboard end===============
 
     // Student Dashboard start===========

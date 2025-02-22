@@ -8,15 +8,24 @@ const createBookMark = async (req, res) => {
         const db = await connectDB();
         const BookMarkCollection = db.collection("BookMark");
 
-        const { createBy, courseId, contestId, type } = req.body;
+        const { createBy, courseId, contestId, courseName, type } = req.body;
         const createdAt = new Date();
 
-        
         const formattedCourseId = type === "course" && courseId ? new ObjectId(courseId) : null;
         const formattedContestId = type === "contest" && contestId ? new ObjectId(contestId) : null;
 
+        // Keep courseName as a string (No ObjectId conversion)
+        const formattedCourseName = type === "books" && courseName ? courseName : null;
+
         // Check if the bookmark already exists
-        const existingBookmark = await BookMarkCollection.findOne({ createBy, type, courseId: formattedCourseId, contestId: formattedContestId });
+        const existingBookmark = await BookMarkCollection.findOne({
+            createBy,
+            type,
+            courseId: formattedCourseId,
+            contestId: formattedContestId,
+            courseName: formattedCourseName
+        });
+
         if (existingBookmark) {
             return res.status(409).json({ message: "Bookmark already added for this" });
         }
@@ -26,7 +35,8 @@ const createBookMark = async (req, res) => {
             type,
             createdAt,
             courseId: formattedCourseId,
-            contestId: formattedContestId
+            contestId: formattedContestId,
+            courseName: formattedCourseName
         };
 
         const result = await BookMarkCollection.insertOne(bookmark);
@@ -39,50 +49,76 @@ const createBookMark = async (req, res) => {
 
 
 
+
 const getAllBookMarkForThatUser = async (req, res) => {
     try {
         const db = await connectDB();
         const BookMarkCollection = db.collection("BookMark");
 
         const bookmarks = await BookMarkCollection.aggregate([
+            // Step 1: Match bookmarks for the specific user
             {
-                $match: { createBy: req.params.UserMail }
+                $match: { createBy: req.params.UserMail },
             },
+            // Step 2: Lookup the associated course details
             {
                 $lookup: {
-                    from: "courses",
-                    localField: "courseId",
-                    foreignField: "_id",
-                    as: "CourseDetails",
+                    from: "courses", // The collection to join with
+                    localField: "courseId", // Field in the bookmark collection
+                    foreignField: "_id", // Field in the courses collection
+                    as: "CourseDetails", // The resulting field name for joined data
                 },
             },
+            // Step 3: Unwind the course details (flatten the array)
             {
                 $unwind: {
                     path: "$CourseDetails",
-                    preserveNullAndEmptyArrays: true
-                }
-            },
-            {
-                $lookup: {
-                    from: "ProgrammingContest",
-                    localField: "contestId",
-                    foreignField: "_id",
-                    as: "ContestDetails",
+                    preserveNullAndEmptyArrays: true, // Allow null if no matching course found
                 },
             },
+            // Step 4: Lookup the associated contest details if applicable
+            {
+                $lookup: {
+                    from: "ProgrammingContest", // The contest collection
+                    localField: "contestId", // Field in the bookmark collection
+                    foreignField: "_id", // Field in the contest collection
+                    as: "ContestDetails", // The resulting field name for contest data
+                },
+            },
+            // Step 5: Unwind the contest details (flatten the array)
             {
                 $unwind: {
                     path: "$ContestDetails",
-                    preserveNullAndEmptyArrays: true
-                }
-            }
+                    preserveNullAndEmptyArrays: true, // Allow null if no matching contest found
+                },
+            },
+            // Step 6: Lookup the associated book details by courseName
+            {
+                $lookup: {
+                    from: "books", // The collection to join with
+                    localField: "CourseDetails.courseName", // Field in the bookmark collection
+                    foreignField: "courseName", // Field in the books collection
+                    as: "BookDetails", // The resulting field name for book data
+                },
+            },
+            // Step 7: Unwind the book details (flatten the array)
+            {
+                $unwind: {
+                    path: "$BookDetails",
+                    preserveNullAndEmptyArrays: true, // Allow null if no matching book found
+                },
+            },
         ]).toArray();
 
+        // Respond with the fetched bookmarks data
         res.status(200).json(bookmarks);
     } catch (error) {
+        console.error("Error fetching bookmarks:", error);
         res.status(500).json({ message: "Error fetching bookmarks", error });
     }
 };
+
+
 
 
 
