@@ -92,8 +92,22 @@ const getAllBookMarkForThatUser = async (req, res) => {
                     preserveNullAndEmptyArrays: true, // Allow null if no matching contest found
                 },
             },
-        
-            
+            // Step 6: Lookup the associated book details by courseName
+            {
+                $lookup: {
+                    from: "books", // The collection to join with
+                    localField: "CourseDetails.courseName", // Field in the bookmark collection
+                    foreignField: "courseName", // Field in the books collection
+                    as: "BookDetails", // The resulting field name for book data
+                },
+            },
+            // Step 7: Unwind the book details (flatten the array)
+            {
+                $unwind: {
+                    path: "$BookDetails",
+                    preserveNullAndEmptyArrays: true, // Allow null if no matching book found
+                },
+            },
         ]).toArray();
 
         // Respond with the fetched bookmarks data
@@ -103,6 +117,7 @@ const getAllBookMarkForThatUser = async (req, res) => {
         res.status(500).json({ message: "Error fetching bookmarks", error });
     }
 };
+
 
 
 
