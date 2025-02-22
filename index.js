@@ -4,6 +4,7 @@ const express = require("express");
 const cors = require("cors");
 const { Server } = require("socket.io");
 const messaging = require("./utils/socketHandler");
+const upload = require('./middleware/upload');
 
 
 const app = express();
@@ -70,7 +71,7 @@ async function run() {
 
     const notificationsCollection = client.db("uiu-pathshala").collection("notifications");
     const pdf = client.db("uiu-pathshala").collection("pdf"); //anik
-    const announcements = client.db("uiu-pathshala").collection("announcements");
+    const announcements = client.db("uiu-pathshala").collection("announcements");    
 
     // ============ Anik start====================
 
