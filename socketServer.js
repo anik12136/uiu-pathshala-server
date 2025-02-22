@@ -1,7 +1,9 @@
 // socketServer.js
+const { time } = require("console");
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+
 
 // Create an Express app
 const app = express();
@@ -34,19 +36,28 @@ io.on("connection", (socket) => {
 
   // Listen for user sending a message
   socket.on("send-message", (data) => {
-    const { recipient, content, timestamp, sender } = data;
+    console.log("Message received:", data);
+    const { conversationId, recipient, content, timestamp, sender, senderName } = data;
+    
+    senderEmail = sender;
+    message = content;
+    
 
-    console.log(data);
+    
     // Check if the recipient is online
     if (onlineUsers.has(recipient)) {
       const recipientSocketId = onlineUsers.get(recipient);
 
-      // Emit the message directly to the recipient
+      // console.log(recipientSocketId);
+
       io.to(recipientSocketId).emit("new-message", {
-        sender,
-        content,
+        conversationId,
+        senderEmail,
+        message,
         timestamp,
+        senderName,
       });
+      console.log("Message sent to:", recipient);
     } else {
       console.log(`${recipient} is offline`);
       // Optionally, notify the sender that the recipient is offline
@@ -55,6 +66,8 @@ io.on("connection", (socket) => {
         message: "User is offline",
       });
     }
+
+
   });
 
   // Listen for user disconnect
