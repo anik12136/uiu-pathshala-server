@@ -202,9 +202,11 @@ async function run() {
 
     //db updated single user data
 
-    app.put("/dbUser/users", async (req, res) => {
+    app.patch("/dbUser/users", async (req, res) => {
+     
       try {
-        const updatedUser = req.body; // Get user data from request body
+        const updatedUser = req.body;
+        console.log(updatedUser);// Get user data from request body
         const query = { email: updatedUser.email }; // Find user by email
 
         const existingUser = await users.findOne(query);
