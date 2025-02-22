@@ -24,18 +24,17 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use("/uploads", express.static("public/uploads")); // anik
 app.use(express.json());
 
-
 // Routes
 const courseRoutes = require("./routes/course.routes");
 const bookMarkRoutes = require("./routes/bookMark.routes");
 const chatRoutes = require("./routes/chat.routes");
-const uploadRoutes = require('./routes/uploadRoutes'); //anik
+const uploadRoutes = require("./routes/uploadRoutes"); //anik
 const NotificationsRoutes = require("./routes/notification.routes");
 
 app.use("/api", courseRoutes);
 app.use("/chat", chatRoutes);
 app.use("/BookMark", bookMarkRoutes);
-app.use('/uploads', express.static('uploads')); //anik
+app.use("/uploads", express.static("uploads")); //anik
 app.use("/NotificationsRoutes", NotificationsRoutes);
 
 // Socket.io
@@ -43,7 +42,7 @@ messaging(io);
 //============Socket code ends here ====================
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.00oqpy6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
-const dbName = 'uiu-pathshala'; //anik
+const dbName = "uiu-pathshala"; //anik
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -72,27 +71,39 @@ async function run() {
     const ProgrammingContest = client
       .db("uiu-pathshala")
       .collection("ProgrammingContest");
+    // =============================Library Collection==============================
+    const books = client.db("uiu-pathshala").collection("books");
 
     //=======================================Yamin Starts Here===================================================
-    app.post("/books",upload.single('file'),(req,res)=>{
+    app.get("/books", async (req, res) => {
+      // console.log(req.query);
+      const query = { courseName: req.query.courseName };
+      const cursor = await books.find(query).toArray();
+      res.send(cursor)
+    });
+    app.post("/books", upload.single("file"), async (req, res) => {
       console.log("PDF file uploader API is hitting");
-      // console.log(req.file);
-      // console.log(req.body);
-      // uploadOnCloudinary(`./public/uploads${req.file.filename}`)
-      res.send({body:req.body,file:req.file?.filename});
-    })
-
+      const book = req.body;
+      book.filename = req.file?.filename;
+      console.log(req.file);
+      const result = await books.insertOne(book);
+      res.send(result);
+    });
 
     //====================================Yamin Ends here============================================
 
-    const notificationsCollection = client.db("uiu-pathshala").collection("notifications");
+    const notificationsCollection = client
+      .db("uiu-pathshala")
+      .collection("notifications");
     const pdf = client.db("uiu-pathshala").collection("pdf"); //anik
-    const announcements = client.db("uiu-pathshala").collection("announcements");
+    const announcements = client
+      .db("uiu-pathshala")
+      .collection("announcements");
 
     // ============ Anik start====================
 
     const db = client.db(dbName);
-    app.use('/api/upload', uploadRoutes(db));
+    app.use("/api/upload", uploadRoutes(db));
 
     // -----------Announcements start---------------
 
@@ -100,7 +111,9 @@ async function run() {
       const { title, description } = req.body;
 
       if (!title || !description) {
-        return res.status(400).json({ error: "Title and description are required" });
+        return res
+          .status(400)
+          .json({ error: "Title and description are required" });
       }
 
       try {
@@ -153,10 +166,6 @@ async function run() {
       await announcements.deleteOne({ _id: new ObjectId(req.params.id) });
       res.json({ message: "Announcement deleted successfully" });
     });
-
-
-
-
 
     // Announcements end-------------
 
@@ -252,16 +261,19 @@ async function run() {
     // dashboard courses
     app.get("/bookMarks/:email", async (req, res) => {
       const email = req.params.email;
-      const result = await bookMarks.find({ createBy: email, type: "course" }).toArray();
+      const result = await bookMarks
+        .find({ createBy: email, type: "course" })
+        .toArray();
       res.send(result);
     });
     // dashboard myContest
     app.get("/myContest/:email", async (req, res) => {
       const email = req.params.email;
-      const result = await bookMarks.find({ createBy: email, type: "contest" }).toArray();
+      const result = await bookMarks
+        .find({ createBy: email, type: "contest" })
+        .toArray();
       res.send(result);
     });
-
 
     // ============ Anik end====================
 
