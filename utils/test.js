@@ -17,7 +17,7 @@ const client = new MongoClient(dbURL, {
 async function getUsers() {
   try {
 
-    const users = client.db("uiu-pathshala").collection("courses");
+    const users = client.db("uiu-pathshala").collection("users");
     
 
     const result = await users.find().toArray();
@@ -25,7 +25,11 @@ async function getUsers() {
 
   } catch (error) {
     console.error("Error fetching users:", error);
+  } finally{
+    await client.close();
+    return;
   }
+    
 }
 
 // Function to drop the 'courses' collection
