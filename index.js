@@ -4,12 +4,15 @@ const express = require("express");
 const cors = require("cors");
 const { Server } = require("socket.io");
 const messaging = require("./utils/socketHandler");
-const upload = require('./middleware/upload');
+//================================multer upload=============================
+const upload = require("./middleware/upload");
 
-
+console.log(
+  "================================================================================================================"
+);
 const app = express();
 const server = http.createServer(app);
-const io = require('socket.io')(server);
+const io = require("socket.io")(server);
 
 require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
@@ -21,27 +24,25 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use("/uploads", express.static("public/uploads")); // anik
 app.use(express.json());
 
-
 // Routes
 const courseRoutes = require("./routes/course.routes");
 const bookMarkRoutes = require("./routes/bookMark.routes");
 const chatRoutes = require("./routes/chat.routes");
-const uploadRoutes = require('./routes/uploadRoutes'); //anik
+const uploadRoutes = require("./routes/uploadRoutes"); //anik
 const NotificationsRoutes = require("./routes/notification.routes");
 
 app.use("/api", courseRoutes);
 app.use("/chat", chatRoutes);
 app.use("/BookMark", bookMarkRoutes);
-app.use('/uploads', express.static('uploads')); //anik
+app.use("/uploads", express.static("uploads")); //anik
 app.use("/NotificationsRoutes", NotificationsRoutes);
-
 
 // Socket.io
 messaging(io);
 //============Socket code ends here ====================
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.00oqpy6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
-const dbName = 'uiu-pathshala'; //anik
+const dbName = "uiu-pathshala"; //anik
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -67,16 +68,41 @@ async function run() {
 
     const users = client.db("uiu-pathshala").collection("users");
 
-    const ProgrammingContest = client.db("uiu-pathshala").collection("ProgrammingContest");
+    const ProgrammingContest = client
+      .db("uiu-pathshala")
+      .collection("ProgrammingContest");
+    // =============================Library Collection==============================
+    const books = client.db("uiu-pathshala").collection("books");
 
-    const notificationsCollection = client.db("uiu-pathshala").collection("notifications");
+    //=======================================Yamin Starts Here===================================================
+    app.get("/books", async (req, res) => {
+      // console.log(req.query);
+      const query = { courseName: req.query.courseName };
+      const cursor = await books.find(query).toArray();
+      res.send(cursor)
+    });
+    app.post("/books", upload.single("file"), async (req, res) => {
+      console.log("PDF file uploader API is hitting");
+      const book = req.body;
+      book.filename = req.file?.filename;
+      console.log(req.file);
+      const result = await books.insertOne(book);
+      res.send(result);
+    });
+
+    //====================================Yamin Ends here============================================
+
+    const notificationsCollection = client
+      .db("uiu-pathshala")
+      .collection("notifications");
     const pdf = client.db("uiu-pathshala").collection("pdf"); //anik
     const announcements = client.db("uiu-pathshala").collection("announcements");    
+     
 
     // ============ Anik start====================
 
     const db = client.db(dbName);
-    app.use('/api/upload', uploadRoutes(db));
+    app.use("/api/upload", uploadRoutes(db));
 
     // -----------Announcements start---------------
 
@@ -84,7 +110,9 @@ async function run() {
       const { title, description } = req.body;
 
       if (!title || !description) {
-        return res.status(400).json({ error: "Title and description are required" });
+        return res
+          .status(400)
+          .json({ error: "Title and description are required" });
       }
 
       try {
@@ -138,10 +166,6 @@ async function run() {
       res.json({ message: "Announcement deleted successfully" });
     });
 
-
-
-
-
     // Announcements end-------------
 
     // Demo Courses Route
@@ -188,7 +212,7 @@ async function run() {
     });
 
     // Get user by ID
-    app.get('/users/:id', async (req, res) => {
+    app.get("/users/:id", async (req, res) => {
       const id = req.params.id;
       const result = await users.findOne({ _id: new ObjectId(id) });
       res.send(result);
@@ -196,22 +220,23 @@ async function run() {
 
     // Admin Dashboard start----------
     // Delete user by ID
-    app.delete('/users/:id', async (req, res) => {
+    app.delete("/users/:id", async (req, res) => {
       try {
         const id = req.params.id;
-        const user = await users.deleteOne({ _id: new ObjectId(req.params.id) });
+        const user = await users.deleteOne({
+          _id: new ObjectId(req.params.id),
+        });
         if (!user) {
-          return res.status(404).json({ message: 'User not found' });
+          return res.status(404).json({ message: "User not found" });
         }
-        res.json({ message: 'User deleted successfully' });
+        res.json({ message: "User deleted successfully" });
       } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+        res.status(500).json({ message: "Server error", error });
       }
     });
 
-
     // Warning
-    app.put('/users/:id', async (req, res) => {
+    app.put("/users/:id", async (req, res) => {
       try {
         const id = req.params.id;
         const updateData = req.body;
@@ -221,12 +246,12 @@ async function run() {
         );
 
         if (result.matchedCount === 0) {
-          return res.status(404).json({ message: 'User not found' });
+          return res.status(404).json({ message: "User not found" });
         }
 
-        res.json({ message: 'User updated successfully', result });
+        res.json({ message: "User updated successfully", result });
       } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+        res.status(500).json({ message: "Server error", error });
       }
     });
     // Admin Dashboard end===============
@@ -235,16 +260,19 @@ async function run() {
     // dashboard courses
     app.get("/bookMarks/:email", async (req, res) => {
       const email = req.params.email;
-      const result = await bookMarks.find({ createBy: email, type: "course" }).toArray();
+      const result = await bookMarks
+        .find({ createBy: email, type: "course" })
+        .toArray();
       res.send(result);
     });
     // dashboard myContest
     app.get("/myContest/:email", async (req, res) => {
       const email = req.params.email;
-      const result = await bookMarks.find({ createBy: email, type: "contest" }).toArray();
+      const result = await bookMarks
+        .find({ createBy: email, type: "contest" })
+        .toArray();
       res.send(result);
     });
-
 
     // ============ Anik end====================
 
@@ -279,12 +307,10 @@ async function run() {
 
       try {
         const result = await GeneralCommunity.insertOne(post);
-        res
-          .status(201)
-          .json({
-            message: "Post created successfully",
-            postId: result.insertedId,
-          });
+        res.status(201).json({
+          message: "Post created successfully",
+          postId: result.insertedId,
+        });
       } catch (error) {
         res.status(500).json({ message: "Error creating post", error });
       }
@@ -361,11 +387,9 @@ async function run() {
         // Delete the post
         await GeneralCommunity.deleteOne({ _id: new ObjectId(postId) });
 
-        res
-          .status(200)
-          .json({
-            message: "Post and associated content deleted successfully",
-          });
+        res.status(200).json({
+          message: "Post and associated content deleted successfully",
+        });
       } catch (error) {
         res.status(500).json({ message: "Error deleting post", error });
       }
@@ -413,12 +437,10 @@ async function run() {
 
       try {
         const result = await GeneralCommunity.insertOne(comment);
-        res
-          .status(201)
-          .json({
-            message: "Comment created successfully",
-            commentId: result.insertedId,
-          });
+        res.status(201).json({
+          message: "Comment created successfully",
+          commentId: result.insertedId,
+        });
       } catch (error) {
         res.status(500).json({ message: "Error creating comment", error });
       }
@@ -736,7 +758,9 @@ async function run() {
         const result = await ProgrammingContest.insertOne(contest);
 
         // Fetch all users to send notifications
-        const allUsers = await users.find({}, { projection: { _id: 1 } }).toArray();
+        const allUsers = await users
+          .find({}, { projection: { _id: 1 } })
+          .toArray();
 
         // Create notifications for all users
         const notifications = allUsers.map((user) => ({
@@ -757,7 +781,9 @@ async function run() {
           contestId: result.insertedId,
         });
       } catch (error) {
-        res.status(500).json({ message: "Error creating contest", error: error.message });
+        res
+          .status(500)
+          .json({ message: "Error creating contest", error: error.message });
       }
     });
 
@@ -824,8 +850,6 @@ run().catch(console.dir);
 app.get("/", (req, res) => {
   res.send("UIU-Pathshala is Running");
 });
-
-
 
 app.listen(port, () => {
   console.log(`UIU-Pathshala API is running on port: ${port}`);
