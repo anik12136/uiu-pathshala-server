@@ -73,10 +73,12 @@ async function run() {
       .collection("ProgrammingContest");
     // =============================Library Collection==============================
     const books = client.db("uiu-pathshala").collection("books");
+    const questions = client.db("uiu-pathshala").collection("questions");
 
     //=======================================Yamin Starts Here===================================================
+    // books
     app.get("/books", async (req, res) => {
-      // console.log(req.query);
+      console.log(req.query);
       const query = { courseName: req.query.courseName };
       const cursor = await books.find(query).toArray();
       res.send(cursor)
@@ -89,6 +91,53 @@ async function run() {
       const result = await books.insertOne(book);
       res.send(result);
     });
+    // questions
+    app.get("/questions", async (req, res) => {
+      console.log(req.query);
+      const query = { courseName: req.query.courseName };
+      const cursor = await books.find(query).toArray();
+      res.send(cursor)
+    });
+    app.post("/questions", upload.single("file"), async (req, res) => {
+      console.log("PDF file uploader API is hitting");
+      const book = req.body;
+      book.filename = req.file?.filename;
+      console.log(req.file);
+      const result = await books.insertOne(book);
+      res.send(result);
+    });
+    // notes
+    app.get("/notes", async (req, res) => {
+      console.log(req.query);
+      const query = { courseName: req.query.courseName };
+      const cursor = await books.find(query).toArray();
+      res.send(cursor)
+    });
+    app.post("/notes", upload.single("file"), async (req, res) => {
+      console.log("PDF file uploader API is hitting");
+      const book = req.body;
+      book.filename = req.file?.filename;
+      console.log(req.file);
+      const result = await books.insertOne(book);
+      res.send(result);
+    });
+   
+    // Curriculums
+    app.get("/curriculums", async (req, res) => {
+      console.log(req.query);
+      const query = { courseName: req.query.courseName };
+      const cursor = await books.find(query).toArray();
+      res.send(cursor)
+    });
+    app.post("/curriculums", upload.single("file"), async (req, res) => {
+      console.log("PDF file uploader API is hitting");
+      const book = req.body;
+      book.filename = req.file?.filename;
+      console.log(req.file);
+      const result = await books.insertOne(book);
+      res.send(result);
+    });
+   
 
     //====================================Yamin Ends here============================================
 
