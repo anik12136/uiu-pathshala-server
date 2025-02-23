@@ -1,4 +1,5 @@
 const connectDB = require("../utils/db");
+const { ObjectId } = require("mongodb");
 
 
 
@@ -148,11 +149,11 @@ const getMessages = async (req, res) => {
 };
 
 
-const markConversationAsRead = async (req, res) => {
+const markConversationAsRead2 = async (req, res) => {
   try {
     // Extract conversationId and receiver's email from the request body (or params)
     const { conversationId, receiver } = req.body;
-
+    console.log(req.body);
     if (!conversationId || !receiver) {
       return res
         .status(400)
@@ -166,7 +167,7 @@ const markConversationAsRead = async (req, res) => {
     // Update the participant's read status for the given conversation
     // We use the positional operator to update the correct participant array element
     const updateResult = await conversationsCollection.updateOne(
-      { _id: new ObjectId(conversationId), "participants.email": receiver },
+      { _id: conversationId, "participants.email": receiver },
       { $set: { "participants.$.read": true } }
     );
 
@@ -189,9 +190,91 @@ const markConversationAsRead = async (req, res) => {
 };
 
 
+const markConversationAsRead = async (req, res) => {
+  try {
+    const { conversationId, receiver } = req.body;
+    if (!conversationId || !receiver) {
+      return res
+        .status(400)
+        .json({ message: "conversationId and receiver are required" });
+    }
+
+    // Convert conversationId to ObjectId if needed.
+    const convId = new ObjectId(conversationId);
+    const db = await connectDB();
+    const conversationsCollection = db.collection("conversations");
+
+    // Step 1: Find the conversation document.
+    const conversation = await conversationsCollection.findOne({ _id: convId });
+    if (!conversation) {
+      return res.status(404).json({ message: "Conversation not found" });
+    }
+
+    // Check if the receiver exists in the participants array.
+    const participantIndex = conversation.participants.findIndex(
+      (p) => p.email.toLowerCase() === receiver.toLowerCase()
+    );
+    if (participantIndex === -1) {
+      return res
+        .status(404)
+        .json({ message: "Receiver not found in conversation" });
+    }
+
+    // Step 2: Update that participant's read status.
+    conversation.participants[participantIndex].read = true;
+    // Now perform an update operation with the entire updated participants array.
+    const updateResult = await conversationsCollection.updateOne(
+      { _id: convId },
+      { $set: { participants: conversation.participants } }
+    );
+
+    if (updateResult.modifiedCount === 0) {
+      return res.status(500).json({ message: "Failed to update conversation" });
+    }
+    return res.status(200).json({ message: "Conversation marked as read" });
+  } catch (error) {
+    console.error("Error marking conversation as read:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+const searchUsers = async (req, res) => {
+  try {
+    // Extract the search term from the request body or query params
+    const { query } = req.params; // adjust as needed, e.g., req.query
+    if (!query || query.trim() === "") {
+      return res.status(400).json({ message: "Search query is required" });
+    }
+
+    const db = await connectDB();
+    const usersCollection = db.collection("users");
+
+    // Create a regex for a case-insensitive search for the query in name, email, or studentID.
+    // Escaping special regex characters can be added for production use.
+    const searchRegex = new RegExp(query, "i");
+
+    const results = await usersCollection
+      .find({
+        $or: [
+          { name: { $regex: searchRegex } },
+          { email: { $regex: searchRegex } },
+          { studentID: { $regex: searchRegex } },
+        ],
+      })
+      .toArray();
+
+    return res.status(200).json(results);
+  } catch (error) {
+    console.error("Error in searchUsers:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 module.exports = {
   getAllConversations,
   sendMessage,
   getMessages,
   markConversationAsRead,
+  searchUsers,
 };
