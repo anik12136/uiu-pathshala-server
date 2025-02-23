@@ -4,6 +4,7 @@ const {
   sendMessage,
   getMessages,
   markConversationAsRead,
+  searchUsers,
 } = require("../controllers/chat.controller");
 const router = express.Router();
 
@@ -12,7 +13,8 @@ const router = express.Router();
 router.get("/conversations/:email", getAllConversations);
 router.post("/message", sendMessage);
 router.get("/messages/:conversationId", getMessages);
-router.patch("/conversation/markRead", markConversationAsRead);
+router.patch("/markRead", markConversationAsRead);
+router.get("/user/:query", searchUsers);
 
 // router.post("/conversations", getOrCreateConversation);
 // router.get("/conversations", getConversations);

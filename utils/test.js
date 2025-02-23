@@ -17,7 +17,7 @@ const client = new MongoClient(dbURL, {
 async function getUsers() {
   try {
 
-    const users = client.db("uiu-pathshala").collection("users");
+    const users = client.db("uiu-pathshala").collection("conversations");
     
 
     const result = await users.find().toArray();
