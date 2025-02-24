@@ -74,6 +74,8 @@ async function run() {
     // =============================Library Collection==============================
     const books = client.db("uiu-pathshala").collection("books");
     const questions = client.db("uiu-pathshala").collection("questions");
+    const notes = client.db("uiu-pathshala").collection("notes");
+    const curriculums = client.db("uiu-pathshala").collection("curriculums");
 
     //=======================================Yamin Starts Here===================================================
     // books
@@ -95,7 +97,7 @@ async function run() {
     app.get("/questions", async (req, res) => {
       console.log(req.query);
       const query = { courseName: req.query.courseName };
-      const cursor = await books.find(query).toArray();
+      const cursor = await questions.find(query).toArray();
       res.send(cursor)
     });
     app.post("/questions", upload.single("file"), async (req, res) => {
@@ -103,14 +105,14 @@ async function run() {
       const book = req.body;
       book.filename = req.file?.filename;
       console.log(req.file);
-      const result = await books.insertOne(book);
+      const result = await questions.insertOne(book);
       res.send(result);
     });
     // notes
     app.get("/notes", async (req, res) => {
       console.log(req.query);
       const query = { courseName: req.query.courseName };
-      const cursor = await books.find(query).toArray();
+      const cursor = await notes.find(query).toArray();
       res.send(cursor)
     });
     app.post("/notes", upload.single("file"), async (req, res) => {
@@ -118,7 +120,7 @@ async function run() {
       const book = req.body;
       book.filename = req.file?.filename;
       console.log(req.file);
-      const result = await books.insertOne(book);
+      const result = await notes.insertOne(book);
       res.send(result);
     });
    
@@ -126,7 +128,7 @@ async function run() {
     app.get("/curriculums", async (req, res) => {
       console.log(req.query);
       const query = { courseName: req.query.courseName };
-      const cursor = await books.find(query).toArray();
+      const cursor = await curriculums.find(query).toArray();
       res.send(cursor)
     });
     app.post("/curriculums", upload.single("file"), async (req, res) => {
@@ -134,7 +136,7 @@ async function run() {
       const book = req.body;
       book.filename = req.file?.filename;
       console.log(req.file);
-      const result = await books.insertOne(book);
+      const result = await curriculums.insertOne(book);
       res.send(result);
     });
    
