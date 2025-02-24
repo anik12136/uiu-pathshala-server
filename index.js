@@ -30,9 +30,11 @@ const bookMarkRoutes = require("./routes/bookMark.routes");
 const chatRoutes = require("./routes/chat.routes");
 const uploadRoutes = require("./routes/uploadRoutes"); //anik
 const NotificationsRoutes = require("./routes/notification.routes");
+const trackRoutes = require("./routes/track.routes");
 
 app.use("/api", courseRoutes);
 app.use("/chat", chatRoutes);
+app.use("/track", trackRoutes);
 app.use("/BookMark", bookMarkRoutes);
 app.use("/uploads", express.static("uploads")); //anik
 app.use("/NotificationsRoutes", NotificationsRoutes);

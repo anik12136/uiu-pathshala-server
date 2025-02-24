@@ -14,7 +14,7 @@ const storage = multer.diskStorage({
 
 // File filter (optional, to allow only images)
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = ["video/mp4", "video/mkv", "video/avi", "image/png", "image/jpg", "image/jpeg","application/pdf"];
+  const allowedTypes = ["video/mp4", "video/mkv", "video/avi", "image/png", "image/jpg", "image/jpeg","application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation"];
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
